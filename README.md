@@ -1,5 +1,5 @@
 ## peacemeal
-TLDR; Meal planning and budgeting app. Final project for the DJ4E course.
+TLDR; Meal planning and budgeting app. Final project for the [DJ4E](https://www.dj4e.com/) course.
 
 # Full concept
 This app will allow users to search a [static nutrition dataset](https://www.kaggle.com/datasets/tharunmss/nutritional-breakdown-of-foods/data) to create and categorise meals as breakfast, 
