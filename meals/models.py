@@ -2,7 +2,14 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import models
 
-# Create your models here.
+# source: https://www.omnicalculator.com/conversion/grams-in-ml-converter
+GRAMS_TO_ML = {
+    "Milk": 0.9709,
+    "Honey": 0.7042,
+    "Olive Oil": 1.0893,
+    "Sunflower Oil": 1.0417,
+    "Vegetable Oil": 1.1236,
+}
 
 class FoodItem(models.Model):
     '''A food item containing nutritional information that can be used as an ingredient in a `Meal`.\n
