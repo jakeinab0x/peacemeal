@@ -13,7 +13,8 @@ GRAMS_TO_ML = {
 
 class FoodItem(models.Model):
     '''A food item containing nutritional information that can be used as an ingredient in a `Meal`.\n
-    Fields are structured to contain data from a Food Nutrition Database .csv file or JSON dump from the Kaggle API.'''
+    Fields are structured to contain data from a Food Nutrition Database .csv file or JSON dump from the Kaggle API.\n
+    Each nutrional field represents the amount of that nutrient per 100g of the food item.'''
     name = models.CharField(max_length=100)
     carbs = models.DecimalField(max_digits=6, decimal_places=3)
     sugars = models.DecimalField(max_digits=6, decimal_places=3)
