@@ -17,7 +17,7 @@ class Command(BaseCommand):
                 Path(settings.BASE_DIR) 
                 / 'meals' 
                 / 'data'
-                / 'nutrition_dataset.csv'
+                / 'cleaned_nutrition_dataset_per100g.csv'
             ),
             type=Path,
         )
