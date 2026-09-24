@@ -28,6 +28,7 @@ class FoodItem(models.Model):
     vitamin_c = models.DecimalField(max_digits=6, decimal_places=3)
     vitamin_b11 = models.DecimalField(max_digits=6, decimal_places=3)
     kilocalories = models.DecimalField(max_digits=6, decimal_places=3)
+    serving_size_g = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal('100.0')) # default to 100g if not specified
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
