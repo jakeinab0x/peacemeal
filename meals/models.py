@@ -28,7 +28,7 @@ class FoodItem(models.Model):
     vitamin_c = models.DecimalField(max_digits=6, decimal_places=3)
     vitamin_b11 = models.DecimalField(max_digits=6, decimal_places=3)
     kilocalories = models.DecimalField(max_digits=6, decimal_places=3)
-    serving_size_g = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal('100.0')) # default to 100g if not specified
+    portion_size_g = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal('100.0')) # default to 100g if not specified
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -152,7 +152,7 @@ class Ingredient(models.Model):
     @property
     def nutrients(self):
         return {
-            'carbs': self.food_item.carbs * self.quantity, # check calculation - should be per 100g or per serving?
+            'carbs': self.food_item.carbs * self.quantity, # check calculation - should be per 100g or per portion?
             'sugars': self.food_item.sugars * self.quantity,
             'fibre': self.food_item.fibre * self.quantity,
             'fat': self.food_item.fat * self.quantity,

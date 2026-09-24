@@ -3,9 +3,9 @@
 import pandas as pd
 import re
 
-def assign_serving_size(food_name: str) -> float:
+def assign_portion_size(food_name: str) -> float:
     """
-    Maps a food item string to a standard adult serving size in grams
+    Maps a food item string to a standard adult portion size in grams
     based on dietary portion guidelines.
     """
     name = str(food_name).lower()
@@ -63,16 +63,16 @@ def process_nutrition_csv(input_filepath: str, output_filepath: str):
     # 1. Deduce food item column (matches 'food', 'item', 'name', or defaults to first column)
     food_col = next((c for c in df.columns if c.lower() in ['food', 'item', 'name', 'food_item', 'description']), df.columns[0])
 
-    # 2. Add serving_size_g column
-    df['serving_size_g'] = df[food_col].apply(assign_serving_size)
+    # 2. Add portion_size_g column
+    df['portion_size_g'] = df[food_col].apply(assign_portion_size)
 
-    # 3. Handle Unit Conversions & Per-Serving Computations
-    # Scaled ratio factor: serving_size_g / 100.0
-    scaling_factor = df['serving_size_g'] / 100.0
+    # 3. Handle Unit Conversions & Per-Portion Computations
+    # Scaled ratio factor: portion_size_g / 100.0
+    scaling_factor = df['portion_size_g'] / 100.0
 
     numeric_cols = df.select_dtypes(include=['number']).columns.tolist()
-    if 'serving_size_g' in numeric_cols:
-        numeric_cols.remove('serving_size_g')
+    if 'portion_size_g' in numeric_cols:
+        numeric_cols.remove('portion_size_g')
 
     for col in numeric_cols:
         col_lower = col.lower()
@@ -81,21 +81,21 @@ def process_nutrition_csv(input_filepath: str, output_filepath: str):
         if 'mg' in col_lower:
             # Convert base mg per 100g to g per 100g
             df[f"{col}_in_g"] = df[col] / 1000.0
-            # Calculate absolute per-serving value in grams
-            df[f"{col}_per_serving_g"] = (df[f"{col}_in_g"] * scaling_factor).round(4)
-            # Calculate absolute per-serving value in milligrams
-            df[f"{col}_per_serving_mg"] = (df[col] * scaling_factor).round(2)
+            # Calculate absolute per-portion value in grams
+            df[f"{col}_per_portion_g"] = (df[f"{col}_in_g"] * scaling_factor).round(4)
+            # Calculate absolute per-portion value in milligrams
+            df[f"{col}_per_portion_mg"] = (df[col] * scaling_factor).round(2)
 
         elif 'kcal' in col_lower or 'energy' in col_lower or 'calories' in col_lower:
             # Energy remains unchanged in units (kcal), simply scale by portion size
-            df[f"{col}_per_serving"] = (df[col] * scaling_factor).round(1)
+            df[f"{col}_per_portion"] = (df[col] * scaling_factor).round(1)
 
         else:
             # Standard gram-based macronutrients (protein, fat, carbs, fibre)
-            df[f"{col}_per_serving_g"] = (df[col] * scaling_factor).round(2)
+            df[f"{col}_per_portion_g"] = (df[col] * scaling_factor).round(2)
 
     df.to_csv(output_filepath, index=False)
     print(f"Processed dataset successfully saved to: {output_filepath}")
 
 # Execution
-process_nutrition_csv('cleaned_nutrition_dataset_per100g.csv', 'cleaned_nutrition_dataset_with_servings.csv')
+process_nutrition_csv('cleaned_nutrition_dataset_per100g.csv', 'cleaned_nutrition_dataset_with_portions.csv')
