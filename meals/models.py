@@ -60,7 +60,13 @@ class Meal(models.Model):
     description = models.TextField()
     ingredients = models.ManyToManyField(FoodItem, through='Ingredient')
     recipe = models.TextField()
-    category = models.CharField(max_length=50) # 
+    category = models.CharField(max_length=50, choices=[('Breakfast', 'Breakfast'), 
+                                                        ('Lunch', 'Lunch'), 
+                                                        ('Dinner', 'Dinner'),
+                                                        ('Snack', 'Snack'), 
+                                                        ('Dessert', 'Dessert')
+                                                        ])
+    cuisine_type = models.CharField(max_length=50) # Italian, Chinese, Indian, etc.
     total_portions = models.PositiveIntegerField() # One meal should just be one portion
 
     # implement later
