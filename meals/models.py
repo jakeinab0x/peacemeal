@@ -59,7 +59,7 @@ class Meal(models.Model):
     description = models.TextField()
     ingredients = models.ManyToManyField(FoodItem, through='Ingredient')
     recipe = models.TextField()
-    category = models.CharField(max_length=50)
+    category = models.CharField(max_length=50) # 
     total_portions = models.PositiveIntegerField() # One meal should just be one portion
 
     # implement later
@@ -108,7 +108,7 @@ class MealPriceRecord(models.Model):
 class CookingEvent(models.Model):
     '''A record of a user cooking a `Meal` at a specific time.'''
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    meal = models.ForeignKey(Meal, on_delete=models.CASCADE)
+    meal = models.ForeignKey(Meal, on_delete=models.CASCADE, related_name='cooking_events')
     meal_time = models.CharField(max_length=50, choices=[('Breakfast', 'Breakfast'), ('Lunch', 'Lunch'), ('Dinner', 'Dinner')])
 
     cooked_at = models.DateTimeField(auto_now_add=True)
@@ -125,7 +125,7 @@ class CookingEvent(models.Model):
 class PlannedMeal(models.Model):
     '''A record of a user planning to cook a `Meal` at a specific time.'''
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    meal = models.ForeignKey(Meal, on_delete=models.CASCADE)
+    meal = models.ForeignKey(Meal, on_delete=models.CASCADE, related_name='planned_meals')
     planned_time = models.DateTimeField()
 
     created_at = models.DateTimeField(auto_now_add=True)
