@@ -28,7 +28,7 @@ class FoodItem(models.Model):
     vitamin_c = models.DecimalField(max_digits=6, decimal_places=3)
     vitamin_b11 = models.DecimalField(max_digits=6, decimal_places=3)
     kilocalories = models.DecimalField(max_digits=6, decimal_places=3)
-    portion_size_g = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal('100.0')) # default to 100g if not specified
+    portion_size_g = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal('100.0'))
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -158,19 +158,33 @@ class Ingredient(models.Model):
 
     @property
     def nutrients(self):
-        return {
-            'carbs': self.food_item.carbs * self.quantity, # check calculation - should be per 100g or per portion?
-            'sugars': self.food_item.sugars * self.quantity,
-            'fibre': self.food_item.fibre * self.quantity,
-            'fat': self.food_item.fat * self.quantity,
-            'protein': self.food_item.protein * self.quantity,
-            'calcium': self.food_item.calcium * self.quantity,
-            'iron': self.food_item.iron * self.quantity,
-            'sodium': self.food_item.sodium * self.quantity,
-            'vitamin_c': self.food_item.vitamin_c * self.quantity,
-            'vitamin_b11': self.food_item.vitamin_b11 * self.quantity,
-            'kilocalories': self.food_item.kilocalories * self.quantity
+        totals = {
+            field: Decimal('0')
+            for field in (
+                'carbs', 'sugars', 'fibre', 'fat', 'protein',
+                'calcium', 'iron', 'sodium', 'vitamin_c',
+                'vitamin_b11', 'kilocalories'
+            )
         }
+
+        for field in totals:
+            totals[field] = self.get_nutrient_value(
+                field,
+                self.food_item.portion_size_g,
+                self.quantity,
+            )
+
+        return totals
+
+    def get_nutrient_value(self, nutrient, portion_size_g, quantity):
+        '''Calculate the nutrient value for a given nutrient, portion size, and quantity.'''
+        if not hasattr(self.food_item, nutrient):
+            raise ValueError(f"FoodItem does not have attribute '{nutrient}'")
+        
+        # Calculate the nutrient value based on the portion size and quantity
+        nutrient_value_per_100g = getattr(self.food_item, nutrient)
+        nutrient_value = (nutrient_value_per_100g * portion_size_g / 100) * quantity
+        return nutrient_value
 
 class IngredientPriceRecord(models.Model):
     '''A record of the price of an `Ingredient`.'''
