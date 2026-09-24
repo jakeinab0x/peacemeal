@@ -48,7 +48,8 @@ class FoodItem(models.Model):
             'sodium': float(self.sodium),
             'vitamin_c': float(self.vitamin_c),
             'vitamin_b11': float(self.vitamin_b11),
-            'kilocalories': float(self.kilocalories)
+            'kilocalories': float(self.kilocalories),
+            'portion_size_g': float(self.portion_size_g)
         }
 
 class Meal(models.Model):
