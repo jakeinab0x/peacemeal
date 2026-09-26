@@ -1,5 +1,4 @@
 from django.conf import settings
-from django.contrib.auth import get_user_model
 from django.db import models
 from decimal import Decimal
 
@@ -11,6 +10,12 @@ GRAMS_TO_ML = {
     'Sunflower Oil': 1.0417,
     'Vegetable Oil': 1.1236,
 }
+
+NUTRIENT_FIELDS = (
+    'carbs', 'sugars', 'fibre', 'fat', 'protein',
+    'calcium', 'iron', 'sodium', 'vitamin_c',
+    'vitamin_b11', 'kilocalories'
+)
 
 class FoodItem(models.Model):
     '''A food item containing nutritional information that can be used as an `Ingredient` in a `Meal`.<br>
@@ -33,6 +38,9 @@ class FoodItem(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     deleted_at = models.DateTimeField(blank=True, null=True)
+
+    def __str__(self):
+        return self.name
 
     def to_json(self):
         return {
@@ -58,7 +66,7 @@ class Meal(models.Model):
     - Each `Ingredient` can be used in many `Meal`s.'''
     name = models.CharField(max_length=100)
     description = models.TextField()
-    ingredients = models.ManyToManyField(FoodItem, through='Ingredient')
+    food_items = models.ManyToManyField(FoodItem, through='Ingredient', related_name='meals')
     recipe = models.TextField()
     category = models.CharField(max_length=50, choices=[('Breakfast', 'Breakfast'), 
                                                         ('Lunch', 'Lunch'), 
@@ -72,7 +80,7 @@ class Meal(models.Model):
     # implement later
     # image = models.ImageField(upload_to='meal_images/', blank=True, null=True)
 
-    created_by = models.ForeignKey(get_user_model(), blank=True, null=True, on_delete=models.SET_NULL, related_name='meals_created')
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, blank=True, null=True, on_delete=models.CASCADE, related_name='meals_created')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     deleted_at = models.DateTimeField(blank=True, null=True)
@@ -86,14 +94,7 @@ class Meal(models.Model):
 
     @property
     def nutrients(self):
-        totals = {
-            field: Decimal('0')
-            for field in (
-                'carbs', 'sugars', 'fibre', 'fat', 'protein',
-                'calcium', 'iron', 'sodium', 'vitamin_c',
-                'vitamin_b11', 'kilocalories'
-            )
-        }
+        totals = {field: Decimal('0') for field in NUTRIENT_FIELDS}
 
         for ingredient in self.ingredients.all():
             nutrients = ingredient.nutrients
@@ -143,29 +144,27 @@ class Ingredient(models.Model):
     '''An ingredient in a `Meal`, which is a specific `FoodItem` with a quantity and cost.'''
     name = models.CharField(max_length=100)
     meal = models.ForeignKey(Meal, on_delete=models.CASCADE, related_name='ingredients')
-    food_item = models.ForeignKey(FoodItem, on_delete=models.CASCADE)
-    quantity = models.IntegerField(max_length=10) 
+    food_item = models.ForeignKey(FoodItem, on_delete=models.PROTECT, related_name='ingredients')
+    quantity = models.DecimalField(max_digits=8, decimal_places=2)
     # add typical measurement units as food item field? or just use grams/ml for now and convert later if needed
     measurement_unit = models.CharField(max_length=20, choices=[('g', 'grams'), ('ml', 'milliliters')]) 
-    cost_gbp = models.DecimalField(max_digits=6, decimal_places=2)
+    cost_gbp = models.DecimalField(max_digits=8, decimal_places=2)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     deleted_at = models.DateTimeField(blank=True, null=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['meal', 'food_item'], name='unique_ingredient_per_meal')
+        ]
 
     def __str__(self):
         return f'{self.quantity} {self.measurement_unit[0]} of {self.food_item.name} for {self.meal.name}'
 
     @property
     def nutrients(self):
-        totals = {
-            field: Decimal('0')
-            for field in (
-                'carbs', 'sugars', 'fibre', 'fat', 'protein',
-                'calcium', 'iron', 'sodium', 'vitamin_c',
-                'vitamin_b11', 'kilocalories'
-            )
-        }
+        totals = {field: Decimal('0') for field in NUTRIENT_FIELDS}
 
         for field in totals:
             totals[field] = self.get_nutrient_value(
@@ -189,7 +188,7 @@ class Ingredient(models.Model):
 class IngredientPriceRecord(models.Model):
     '''A record of the price of an `Ingredient`.'''
     ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE, related_name='price_records')
-    cost_gbp = models.DecimalField(max_digits=6, decimal_places=2)
+    cost_gbp = models.DecimalField(max_digits=8, decimal_places=2)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
