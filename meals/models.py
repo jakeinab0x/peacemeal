@@ -18,9 +18,11 @@ NUTRIENT_FIELDS = (
 )
 
 class FoodItem(models.Model):
-    '''A food item containing nutritional information that can be used as an `Ingredient` in a `Meal`.<br>
+    '''
+    A food item containing nutritional information that can be used as an `Ingredient` in a `Meal`.<br>
     Fields are structured to contain data from a Food Nutrition Database .csv file or JSON dump from the Kaggle API.<br>
-    Each nutrional field represents the amount of that nutrient per 100g of the food item.'''
+    Each nutrional field represents the amount of that nutrient per 100g of the food item.
+    '''
     name = models.CharField(max_length=100)
     carbs = models.DecimalField(max_digits=6, decimal_places=3) #dp needs changing if converting mg >> g
     sugars = models.DecimalField(max_digits=6, decimal_places=3)
@@ -61,9 +63,11 @@ class FoodItem(models.Model):
         }
 
 class Meal(models.Model):
-    '''A meal that can be cooked via a `CookingEvent`. A `Meal` is a single adult portion:<br>
+    '''
+    A meal that can be cooked via a `CookingEvent`. A `Meal` is a single adult portion:<br>
     - Each `Meal` can have many `Ingredient`s<br>
-    - Each `Ingredient` can be used in many `Meal`s.'''
+    - Each `Ingredient` can be used in many `Meal`s.
+    '''
     name = models.CharField(max_length=100)
     description = models.TextField()
     food_items = models.ManyToManyField(FoodItem, through='Ingredient', related_name='meals')
@@ -80,7 +84,7 @@ class Meal(models.Model):
     # implement later
     # image = models.ImageField(upload_to='meal_images/', blank=True, null=True)
 
-    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, blank=True, null=True, on_delete=models.CASCADE, related_name='meals_created')
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='meals_created')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     deleted_at = models.DateTimeField(blank=True, null=True)
@@ -104,23 +108,33 @@ class Meal(models.Model):
         return totals
 
 class MealPriceRecord(models.Model):
-    '''A record of the price of a `Meal`.'''
+    '''
+    A record of the price of a `Meal`.
+    '''
     meal = models.ForeignKey(Meal, on_delete=models.CASCADE, related_name='price_records')
     cost_gbp = models.DecimalField(max_digits=6, decimal_places=2)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     deleted_at = models.DateTimeField(blank=True, null=True)
+
+    def __str__(self):
+        return f'Price record for {self.meal.name}: £{self.cost_gbp}'
     
 
 class CookingEvent(models.Model):
-    '''A record of a user cooking a `Meal` at a specific time.'''
+    '''
+    A record of a user cooking a `Meal` at a specific time.
+    '''
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     meal = models.ForeignKey(Meal, on_delete=models.CASCADE, related_name='cooking_events')
     meal_time = models.CharField(max_length=50, choices=[('Breakfast', 'Breakfast'), ('Lunch', 'Lunch'), ('Dinner', 'Dinner')])
 
     cooked_at = models.DateTimeField(auto_now_add=True)
     deleted_at = models.DateTimeField(blank=True, null=True)
+
+    def __str__(self):
+        return f'{self.user.username} cooked {self.meal.name} for {self.get_meal_time()} at {self.cooked_at}.'
 
     def get_meal_time(self):
         if 4 <= self.cooked_at.hour < 12:
@@ -130,8 +144,11 @@ class CookingEvent(models.Model):
         else:
             return 'Dinner'
 
+
 class PlannedMeal(models.Model):
-    '''A record of a user planning to cook a `Meal` at a specific time.'''
+    '''
+    A record of a user planning to cook a `Meal` at a specific time.
+    '''
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     meal = models.ForeignKey(Meal, on_delete=models.CASCADE, related_name='planned_meals')
     planned_time = models.DateTimeField()
@@ -140,8 +157,13 @@ class PlannedMeal(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     deleted_at = models.DateTimeField(blank=True, null=True)
 
+    def __str__(self):
+        return f'{self.user.username} planned to cook {self.meal.name} at {self.planned_time}.'
+
 class Ingredient(models.Model):
-    '''An ingredient in a `Meal`, which is a specific `FoodItem` with a quantity and cost.'''
+    '''
+    An ingredient in a `Meal`, which is a specific `FoodItem` with a quantity and cost.
+    '''
     name = models.CharField(max_length=100)
     meal = models.ForeignKey(Meal, on_delete=models.CASCADE, related_name='ingredients')
     food_item = models.ForeignKey(FoodItem, on_delete=models.PROTECT, related_name='ingredients')
@@ -176,7 +198,9 @@ class Ingredient(models.Model):
         return totals
 
     def get_nutrient_value(self, nutrient, portion_size_g, quantity):
-        '''Calculate the nutrient value for a given nutrient, portion size, and quantity.'''
+        '''
+        Calculate the nutrient value for a given nutrient, portion size, and quantity.
+        '''
         if not hasattr(self.food_item, nutrient):
             raise ValueError(f"FoodItem does not have attribute '{nutrient}'")
         
@@ -186,10 +210,16 @@ class Ingredient(models.Model):
         return nutrient_value
 
 class IngredientPriceRecord(models.Model):
-    '''A record of the price of an `Ingredient`.'''
+    '''
+    A record of the price of an `Ingredient`.
+    '''
     ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE, related_name='price_records')
     cost_gbp = models.DecimalField(max_digits=8, decimal_places=2)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     deleted_at = models.DateTimeField(blank=True, null=True)
+
+    def __str__(self):
+        return f'Price record for {self.ingredient.name}: £{self.cost_gbp}'
+    
