@@ -36,6 +36,7 @@ class FoodItem(models.Model):
     vitamin_b11 = models.DecimalField(max_digits=6, decimal_places=3)
     kilocalories = models.DecimalField(max_digits=6, decimal_places=3)
     portion_size_g = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal('100.0'))
+    measurement_unit = models.CharField(max_length=20) # grams, ml, etc.
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -59,7 +60,8 @@ class FoodItem(models.Model):
             'vitamin_c': float(self.vitamin_c),
             'vitamin_b11': float(self.vitamin_b11),
             'kilocalories': float(self.kilocalories),
-            'portion_size_g': float(self.portion_size_g)
+            'portion_size_g': float(self.portion_size_g),
+            'measurement_unit': self.measurement_unit
         }
 
 class Meal(models.Model):
@@ -162,15 +164,15 @@ class PlannedMeal(models.Model):
 
 class Ingredient(models.Model):
     '''
-    An ingredient in a `Meal`, which is a specific `FoodItem` with a quantity and cost.
+    An ingredient in a `Meal`, which is a specific quantity of a `FoodItem`.</br>
+    The `Ingredient` model serves as a through table for the many-to-many relationship</br>
+    between `Meal` and `FoodItem`. `FoodItem` fields are best accessed through the </br>
+    nutrients property which calculates the nutrient values based on the quantity.
     '''
     name = models.CharField(max_length=100)
     meal = models.ForeignKey(Meal, on_delete=models.CASCADE, related_name='ingredients')
     food_item = models.ForeignKey(FoodItem, on_delete=models.PROTECT, related_name='ingredients')
     quantity = models.DecimalField(max_digits=8, decimal_places=2)
-    # add typical measurement units as food item field? or just use grams/ml for now and convert later if needed
-    measurement_unit = models.CharField(max_length=20, choices=[('g', 'grams'), ('ml', 'milliliters')]) 
-    cost_gbp = models.DecimalField(max_digits=8, decimal_places=2)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -182,44 +184,58 @@ class Ingredient(models.Model):
         ]
 
     def __str__(self):
-        return f'{self.quantity} {self.measurement_unit[0]} of {self.food_item.name} for {self.meal.name}'
+        return f'{self.quantity} {self.food_item.measurement_unit} of {self.food_item.name} for {self.meal.name}'
+
+    def get_nutrient_value(self, nutrient):
+        '''
+        Calculate the nutrient value for a given nutrient, portion size, and quantity, converted to the appropriate unit.
+        '''
+        try:
+            nutrient_value_per_100g = getattr(self.food_item, nutrient)
+        except AttributeError:
+            raise AttributeError(f"FoodItem {self.food_item.name} does not have attribute '{nutrient}'.")
+        
+        # TODO: Add self.food_item.measurement_unit conversion logic
+        nutrient_value = (nutrient_value_per_100g * self.food_item.portion_size_g / 100) * self.quantity
+        return nutrient_value
 
     @property
     def nutrients(self):
         totals = {field: Decimal('0') for field in NUTRIENT_FIELDS}
 
         for field in totals:
-            totals[field] = self.get_nutrient_value(
-                field,
-                self.food_item.portion_size_g,
-                self.quantity,
-            )
+            totals[field] = self.get_nutrient_value(field)
 
         return totals
 
-    def get_nutrient_value(self, nutrient, portion_size_g, quantity):
+    @property
+    def current_price(self):
         '''
-        Calculate the nutrient value for a given nutrient, portion size, and quantity.
+        Get the most recent price record.
         '''
-        if not hasattr(self.food_item, nutrient):
-            raise ValueError(f"FoodItem does not have attribute '{nutrient}'")
-        
-        # Calculate the nutrient value based on the portion size and quantity
-        nutrient_value_per_100g = getattr(self.food_item, nutrient)
-        nutrient_value = (nutrient_value_per_100g * portion_size_g / 100) * quantity
-        return nutrient_value
+        return self.price_records.order_by('-created_at').first()
 
+    @property
+    def price_at_creation(self):
+        '''
+        Get the price record from the date of creation.
+        '''
+        # TODO: Test this method returns the correct price record from the date of creation. 
+        return self.price_records.filter(created_at__date=self.created_at.date()).order_by('-created_at').first()
+
+    
 class IngredientPriceRecord(models.Model):
     '''
     A record of the price of an `Ingredient`.
     '''
     ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE, related_name='price_records')
-    cost_gbp = models.DecimalField(max_digits=8, decimal_places=2)
+    price = models.DecimalField(max_digits=8, decimal_places=2)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     deleted_at = models.DateTimeField(blank=True, null=True)
 
     def __str__(self):
-        return f'Price record for {self.ingredient.name}: £{self.cost_gbp}'
+        # Use '£' for now - TODO: Add local currency to user settings later
+        return f'Price record for {self.ingredient.name}: £{self.price}'
     
